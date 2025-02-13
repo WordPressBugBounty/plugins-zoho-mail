@@ -2,7 +2,7 @@
 //require_once('wp-load.php');
 /*
 Plugin Name: Zoho Mail
-Version: 1.5.8
+Version: 1.5.9
 Plugin URI: http://mail.zoho.com
 Author: Zoho Mail
 Author URI: https://www.zoho.com/mail/
@@ -69,7 +69,7 @@ Domain Path: /languages
     add_action( 'wp_mail_failed', 'onMailError', 10, 1 );
     function onMailError( $wp_error ) {
       $error_message = $wp_error->get_error_message('wp_mail_failed');
-      echo '<div class="error"><p><strong>Error --> '.$error_message.'</strong></p></div>';
+      echo '<div class="error"><p><strong>Error --> ' . wp_kses_post($error_message) . '</strong></p></div>';
     }    
 
     add_action( 'admin_enqueue_scripts', 'zm_zmplugin_script');
@@ -174,12 +174,15 @@ Domain Path: /languages
             <div class="zmwpCEBoxWra">
               <div class="zmwpCEBox">
                 <h5>Invalid Client Secret</h5>
-                <form method="post" enctype="multipart/form-data" action="<?php echo $_SERVER["REQUEST_URI"]; ?>"><input type="hidden" id="zmail_invalid_secret" name="zmail_invalid_secret" value="true"/><input type="submit" name="zmail_troubleshoot_invalid_cs" id="zmail_troubleshoot_invalid_cs" class="tbtn" value="Troubleshoot"/></form>
+                <form method="post" enctype="multipart/form-data" action="<?php echo esc_url($_SERVER["REQUEST_URI"]); ?>">
+                	<input type="hidden" id="zmail_invalid_secret" name="zmail_invalid_secret" value="true"/>
+                	<input type="submit" name="zmail_troubleshoot_invalid_cs" id="zmail_troubleshoot_invalid_cs" class="tbtn" value="Troubleshoot"/>
+                </form>
                 <!--<a href="" target="_blank" class="zmwpLink"><b>Troubleshoot</b></a>-->
               </div>
               <div class="zmwpCEBox">
                 <h5>Invalid from Address</h5>
-                <form method="post" enctype="multipart/form-data" action="<?php echo $_SERVER["REQUEST_URI"]; ?>"><input type="hidden" id="zmail_invalid_from" name="zmail_invalid_from" value="true"/><input type="submit" name="zmail_troubleshoot_invalid_fn" id="zmail_troubleshoot_invalid_fn" class="tbtn" value="Troubleshoot"/></form>
+                <form method="post" enctype="multipart/form-data" action="<?php echo esc_url($_SERVER["REQUEST_URI"]); ?>"><input type="hidden" id="zmail_invalid_from" name="zmail_invalid_from" value="true"/><input type="submit" name="zmail_troubleshoot_invalid_fn" id="zmail_troubleshoot_invalid_fn" class="tbtn" value="Troubleshoot"/></form>
                 <!--<a href="" target="_blank" class="zmwpLink"><b>Troubleshoot</b></a>-->
               </div>
             </div>
@@ -227,20 +230,20 @@ Domain Path: /languages
 $zmail_content_type = get_option('zmail_content_type');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zmail_content_type'])) {
-  $selectedValue = sanitize_text_field($_POST['zmail_content_type']);
+  $selectedValue = validate_content_type(sanitize_text_field($_POST['zmail_content_type']));
   update_option('zmail_content_type', $selectedValue, false);
 }
 $zmail_integ_from_email_id = get_option('zmail_integ_from_email_id');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zmail_integ_from_email_id'])) {
-  $selectedValue = sanitize_text_field($_POST['zmail_integ_from_email_id']);
+  $selectedValue = validate_email(sanitize_email($_POST['zmail_integ_from_email_id']));
   update_option('zmail_integ_from_email_id', $selectedValue, false);
   
 }
 
 $zmail_integ_from_name = get_option('zmail_integ_from_name');
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zmail_integ_from_name'])) {
-  $selectedValue = sanitize_text_field($_POST['zmail_integ_from_name']);
+  $selectedValue = validate_from_name(sanitize_text_field($_POST['zmail_integ_from_name']));
   update_option('zmail_integ_from_name', $selectedValue, false);
 }
 
@@ -320,17 +323,24 @@ if(current_user_can("administrator") || is_super_admin()) {
       echo '<div class="error"><p><strong>'.esc_html__('Reload the page again').'</strong></p></div>'."\n";
     } 
     else {
-      $zmail_integ_client_id = sanitize_text_field($_POST['zmail_integ_client_id']);
-      $zmail_integ_client_secret = sanitize_text_field($_POST['zmail_integ_client_secret']);
- if (!isset($zmail_integ_from_email_id)) {
-      $zmail_integ_from_email_id = sanitize_email($_POST['zmail_integ_from_email_id']);
+      $zmail_integ_client_id = validate_client_id(sanitize_text_field($_POST['zmail_integ_client_id']));
+      $zmail_integ_client_secret = validate_client_secret(sanitize_text_field($_POST['zmail_integ_client_secret']));
+      if (!isset($zmail_integ_from_email_id)) {
+      $zmail_integ_from_email_id = validate_email(sanitize_email($_POST['zmail_integ_from_email_id']));
       }
       if (!isset($zmail_integ_domain_name)) {
-      $zmail_integ_domain_name = sanitize_text_field($_POST['zmail_integ_domain_name']);}
+      $zmail_integ_domain_name = validate_domain(sanitize_text_field($_POST['zmail_integ_domain_name']));}
       if (!isset($zmail_integ_from_name)) {
-      $zmail_integ_from_name = sanitize_text_field($_POST['zmail_integ_from_name']);}
+      $zmail_integ_from_name = validate_from_name(sanitize_text_field($_POST['zmail_integ_from_name']));}
       if (!isset($zmail_integ_from_name)) {
-      $zmail_content_type = sanitize_text_field($_POST['zmail_content_type']);}
+      $zmail_content_type = validate_content_type(sanitize_text_field($_POST['zmail_content_type']));}
+      
+      
+      if (!$zmail_integ_client_id || !$zmail_integ_client_secret) {
+         die('Invalid input detected.');
+      }
+
+
       update_option('zmail_integ_client_id',$zmail_integ_client_id, false);
       update_option('zmail_integ_client_secret',$zmail_integ_client_secret, false);
       update_option('zmail_integ_from_email_id',$zmail_integ_from_email_id, false);
@@ -367,7 +377,7 @@ if(current_user_can("administrator") || is_super_admin()) {
         </script>
       </head>
       <body>
-        <form method="post" action="<?php echo $_SERVER["REQUEST_URI"]; ?>">
+        <form method="post" action="<?php echo esc_url($_SERVER["REQUEST_URI"]); ?>">
           <?php wp_nonce_field('zmail_integ_settings_nonce'); ?>
           <div class="page"><div class="page__content">
             <div class="page__header">
@@ -458,7 +468,8 @@ if(current_user_can("administrator") || is_super_admin()) {
                                 $fromAddress = $mailDetail->fromAddress;
            // echo '<option value="' . $fromAddress . '">' . $fromAddress . '</option>';
                                 $isSelected = ($fromAddress == get_option('zmail_integ_from_email_id')) ? 'selected="selected"' : '';
-                                echo '<option value="' . $fromAddress . '" ' . $isSelected . '>' . $fromAddress . '</option>';
+                                echo '<option value="' . esc_attr($fromAddress) . '" ' . $isSelected . '>' . esc_html($fromAddress) . '</option>';
+
                               }
                               $mailDetailCount = count($account->sendMailDetails);
                               $jsonDataString = json_encode($jsonbodyAccounts->data);
@@ -510,14 +521,42 @@ if(current_user_can("administrator") || is_super_admin()) {
           
           add_action('admin_menu','zmail_integ_settings');
 
+	       
+	function validate_email($email) {
+	    return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : false;
+	}
 
+	function validate_domain($domain) {
+	    return filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) ? $domain : false;
+	}
 
+	function validate_client_id($input) {
+	    return preg_match('/^[A-Z0-9.]+$/', $input) ? $input : false;
+	}
 
+	function validate_client_secret($secret) {
+	    return preg_match('/^[a-z0-9]+$/', $secret) ? $secret : false;
+	}
+
+	function validate_url($url) {
+	    return filter_var($url, FILTER_VALIDATE_URL) ? $url : '';
+	}
+
+	function validate_content_type($input) {
+	    $allowed_values = ['html', 'plaintext'];
+	    return in_array(strtolower($input), $allowed_values, true) ? strtolower($input) : false;
+	}
+	
+	function validate_from_name($input) {
+	    // Allow letters, numbers, spaces, and basic special chars (.-_)
+	    $input = trim($input);
+	    if (preg_match('/^[a-zA-Z0-9 ._-]{1,50}$/', $input)) {
+		return $input;
+	    }
+	    return false;
+	}
 
           function zmail_send_mail_callback() {
-
-            
-            
 
             $option = get_option('zmail_account_id'); 
             if(!empty($option)){
@@ -531,9 +570,14 @@ if(current_user_can("administrator") || is_super_admin()) {
                     if(empty($option)){          
                       echo '<div class="error"><p><strong>'.esc_html__('Account not Configured').'</strong></p></div>'."\n";
                     }
-                    $toAddressTest =sanitize_email($_POST['zmail_integ_to_address']);
-                    $subjectTest = sanitize_text_field($_POST['zmail_integ_subject']);
-                    $contentTest = sanitize_text_field($_POST['zmail_integ_content']);
+                    $toAddressTest = validate_email(sanitize_email($_POST['zmail_integ_to_address']));
+                    $subjectTest = isset($_POST['zmail_integ_subject']) ? wp_kses_post($_POST['zmail_integ_subject']) : '';
+		    $contentTest = isset($_POST['zmail_integ_content']) ? wp_kses_post($_POST['zmail_integ_content']) : '';
+
+		    if (!$toAddressTest || !$subjectTest || !$contentTest) {
+			 die('Invalid input detected.');
+		    }
+
                     if(wp_mail($toAddressTest,$subjectTest,$contentTest,'', array())) {
                       echo '<div class="updated"><p><strong>'.esc_html__('Mail Sent Successfully').'</strong></p></div>'."\n";
                     } else {
@@ -549,7 +593,7 @@ if(current_user_can("administrator") || is_super_admin()) {
                <title>Zoho Mail</title>
              </head>
 
-             <form method="post" enctype="multipart/form-data" action="<?php echo $_SERVER["REQUEST_URI"]; ?>">
+             <form method="post" enctype="multipart/form-data" action="<?php echo esc_url($_SERVER["REQUEST_URI"]); ?>">
                <?php wp_nonce_field('zmail_send_mail_nonce'); ?>
                <body>
                 <div class="page"><div class="page__content">
@@ -586,7 +630,7 @@ if(current_user_can("administrator") || is_super_admin()) {
 
          if(!function_exists('wp_mail')) {
           function wp_mail( $to, $subject, $message, $headers = '', $attachments = array() ) { 
-                      
+
             $atts = apply_filters( 'wp_mail', compact( 'to', 'subject', 'message', 'headers', 'attachments' ) );
 
             if ( isset( $atts['to'] ) ) {
@@ -718,6 +762,10 @@ if(current_user_can("administrator") || is_super_admin()) {
       if(!empty(get_option('zmail_auth_code'))) {
         delete_option('zmail_auth_code');
       }
+      
+       $allowed_upload_dir = wp_upload_dir();
+       $allowed_dir = realpath($allowed_upload_dir['basedir']);
+    
       $data['subject'] = $subject;
       $data['content'] = $message;
       $toAddresses = implode(',' ,$to);
@@ -734,27 +782,33 @@ if(current_user_can("administrator") || is_super_admin()) {
         $count = 0;
         $flag = 'true';
         foreach($attachments as $attfile) {
-          $fileName = basename($attfile);
-          $attachurl = 'https://mail.'.getDomainName().'/api/accounts/'.get_option('zmail_account_id').'/messages/attachments'.'?fileName='.$fileName;
-          $args = array(
-           'body' => file_get_contents($attfile),
-           'headers' => $headers1,
-           'method' => 'POST',
-           'timeout' => 30
-         );
-          $resultatt = wp_remote_post($attachurl, $args);
-          $responseSending = wp_remote_retrieve_body($resultatt);
-          $http_code = wp_remote_retrieve_response_code($resultatt);
-          $attachmentupload = array();
-          if($http_code == '200') {
-           $responseattachjson = json_decode($responseSending);
-           $attachmentupload['storeName'] = $responseattachjson->data->storeName;
-           $attachmentupload['attachmentPath'] = $responseattachjson->data->attachmentPath;
-           $attachmentupload['attachmentName'] = $responseattachjson->data->attachmentName;
-           $attachmentJSONArr[$count] = $attachmentupload;
-           $count = $count + 1;
-         } else {
-          $flag = 'false';
+          $real_path = realpath($attfile); 
+          if ($real_path && strpos($real_path, $allowed_dir) === 0 && file_exists($real_path) && is_readable($real_path)) {
+		  $fileName = basename($attfile);
+		  $attachurl = 'https://mail.'.getDomainName().'/api/accounts/'.get_option('zmail_account_id').'/messages/attachments'.'?fileName='.$fileName;
+		  $args = array(
+		   'body' => file_get_contents($attfile),
+		   'headers' => $headers1,
+		   'method' => 'POST',
+		   'timeout' => 30
+		 );
+		 
+	
+		  $resultatt = wp_remote_post($attachurl, $args);
+		  $responseSending = wp_remote_retrieve_body($resultatt);
+		  $http_code = wp_remote_retrieve_response_code($resultatt);
+		  $attachmentupload = array();
+		  if($http_code == '200') {
+		   $responseattachjson = json_decode($responseSending);
+		   $attachmentupload['storeName'] = $responseattachjson->data->storeName;
+		   $attachmentupload['attachmentPath'] = $responseattachjson->data->attachmentPath;
+		   $attachmentupload['attachmentName'] = $responseattachjson->data->attachmentName;
+		   $attachmentJSONArr[$count] = $attachmentupload;
+		   $count = $count + 1;
+		   
+		 } else {
+		  $flag = 'false';
+		}
         }
       }
       if($flag == 'true') {
@@ -788,6 +842,14 @@ $mail_data = array(
   'attachments' => $attachments
 );
 
+$account_id = get_option('zmail_account_id');
+
+if (empty($account_id)) {
+    do_action( 'wp_mail_failed', new WP_Error( 'wp_mail_failed', 'Zoho Mail Account ID is missing.', array() ) );
+    return false;
+}
+
+
     $urlToSend = 'https://mail.'.getDomainName().'/api/accounts/'.get_option('zmail_account_id').'/messages';
     $responseSending = wp_remote_post( $urlToSend, $args );
     $http_code = wp_remote_retrieve_response_code($responseSending);
@@ -813,6 +875,7 @@ $mail_data = array(
     return false;
 
   }
+  
   
 }
 

@@ -2,7 +2,7 @@
 //require_once('wp-load.php');
 /*
 Plugin Name: Zoho Mail
-Version: 1.5.9
+Version: 1.6.0
 Plugin URI: http://mail.zoho.com
 Author: Zoho Mail
 Author URI: https://www.zoho.com/mail/
@@ -230,20 +230,20 @@ Domain Path: /languages
 $zmail_content_type = get_option('zmail_content_type');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zmail_content_type'])) {
-  $selectedValue = validate_content_type(sanitize_text_field($_POST['zmail_content_type']));
+  $selectedValue = zmail_validate_content_type(sanitize_text_field($_POST['zmail_content_type']));
   update_option('zmail_content_type', $selectedValue, false);
 }
 $zmail_integ_from_email_id = get_option('zmail_integ_from_email_id');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zmail_integ_from_email_id'])) {
-  $selectedValue = validate_email(sanitize_email($_POST['zmail_integ_from_email_id']));
+  $selectedValue = zmail_validate_email(sanitize_email($_POST['zmail_integ_from_email_id']));
   update_option('zmail_integ_from_email_id', $selectedValue, false);
   
 }
 
 $zmail_integ_from_name = get_option('zmail_integ_from_name');
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zmail_integ_from_name'])) {
-  $selectedValue = validate_from_name(sanitize_text_field($_POST['zmail_integ_from_name']));
+  $selectedValue = zmail_validate_from_name(sanitize_text_field($_POST['zmail_integ_from_name']));
   update_option('zmail_integ_from_name', $selectedValue, false);
 }
 
@@ -323,22 +323,17 @@ if(current_user_can("administrator") || is_super_admin()) {
       echo '<div class="error"><p><strong>'.esc_html__('Reload the page again').'</strong></p></div>'."\n";
     } 
     else {
-      $zmail_integ_client_id = validate_client_id(sanitize_text_field($_POST['zmail_integ_client_id']));
-      $zmail_integ_client_secret = validate_client_secret(sanitize_text_field($_POST['zmail_integ_client_secret']));
+      $zmail_integ_client_id = zmail_validate_client_id(sanitize_text_field($_POST['zmail_integ_client_id']));
+      $zmail_integ_client_secret = zmail_validate_client_secret(sanitize_text_field($_POST['zmail_integ_client_secret']));
       if (!isset($zmail_integ_from_email_id)) {
-      $zmail_integ_from_email_id = validate_email(sanitize_email($_POST['zmail_integ_from_email_id']));
+      $zmail_integ_from_email_id = zmail_validate_email(sanitize_email($_POST['zmail_integ_from_email_id']));
       }
       if (!isset($zmail_integ_domain_name)) {
-      $zmail_integ_domain_name = validate_domain(sanitize_text_field($_POST['zmail_integ_domain_name']));}
+      $zmail_integ_domain_name = zmail_validate_domain(sanitize_text_field($_POST['zmail_integ_domain_name']));}
       if (!isset($zmail_integ_from_name)) {
-      $zmail_integ_from_name = validate_from_name(sanitize_text_field($_POST['zmail_integ_from_name']));}
+      $zmail_integ_from_name = zmail_validate_from_name(sanitize_text_field($_POST['zmail_integ_from_name']));}
       if (!isset($zmail_integ_from_name)) {
-      $zmail_content_type = validate_content_type(sanitize_text_field($_POST['zmail_content_type']));}
-      
-      
-      if (!$zmail_integ_client_id || !$zmail_integ_client_secret) {
-         die('Invalid input detected.');
-      }
+      $zmail_content_type = zmail_validate_content_type(sanitize_text_field($_POST['zmail_content_type']));}
 
 
       update_option('zmail_integ_client_id',$zmail_integ_client_id, false);
@@ -522,32 +517,32 @@ if(current_user_can("administrator") || is_super_admin()) {
           add_action('admin_menu','zmail_integ_settings');
 
 	       
-	function validate_email($email) {
+	function zmail_validate_email($email) {
 	    return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : false;
 	}
 
-	function validate_domain($domain) {
+	function zmail_validate_domain($domain) {
 	    return filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) ? $domain : false;
 	}
 
-	function validate_client_id($input) {
+	function zmail_validate_client_id($input) {
 	    return preg_match('/^[A-Z0-9.]+$/', $input) ? $input : false;
 	}
 
-	function validate_client_secret($secret) {
+	function zmail_validate_client_secret($secret) {
 	    return preg_match('/^[a-z0-9]+$/', $secret) ? $secret : false;
 	}
 
-	function validate_url($url) {
+	function zmail_validate_url($url) {
 	    return filter_var($url, FILTER_VALIDATE_URL) ? $url : '';
 	}
 
-	function validate_content_type($input) {
+	function zmail_validate_content_type($input) {
 	    $allowed_values = ['html', 'plaintext'];
 	    return in_array(strtolower($input), $allowed_values, true) ? strtolower($input) : false;
 	}
 	
-	function validate_from_name($input) {
+	function zmail_validate_from_name($input) {
 	    // Allow letters, numbers, spaces, and basic special chars (.-_)
 	    $input = trim($input);
 	    if (preg_match('/^[a-zA-Z0-9 ._-]{1,50}$/', $input)) {
@@ -570,13 +565,9 @@ if(current_user_can("administrator") || is_super_admin()) {
                     if(empty($option)){          
                       echo '<div class="error"><p><strong>'.esc_html__('Account not Configured').'</strong></p></div>'."\n";
                     }
-                    $toAddressTest = validate_email(sanitize_email($_POST['zmail_integ_to_address']));
+                    $toAddressTest = zmail_validate_email(sanitize_email($_POST['zmail_integ_to_address']));
                     $subjectTest = isset($_POST['zmail_integ_subject']) ? wp_kses_post($_POST['zmail_integ_subject']) : '';
-		    $contentTest = isset($_POST['zmail_integ_content']) ? wp_kses_post($_POST['zmail_integ_content']) : '';
-
-		    if (!$toAddressTest || !$subjectTest || !$contentTest) {
-			 die('Invalid input detected.');
-		    }
+		                $contentTest = isset($_POST['zmail_integ_content']) ? wp_kses_post($_POST['zmail_integ_content']) : '';
 
                     if(wp_mail($toAddressTest,$subjectTest,$contentTest,'', array())) {
                       echo '<div class="updated"><p><strong>'.esc_html__('Mail Sent Successfully').'</strong></p></div>'."\n";
@@ -878,6 +869,7 @@ if (empty($account_id)) {
   
   
 }
+
 
 
 

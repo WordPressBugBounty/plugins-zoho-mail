@@ -5,7 +5,7 @@ Donate link: none
 Requires at least: 4.8
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 1.5.9
+Stable tag: 1.6.0
 License: BSD
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -164,6 +164,8 @@ In case, you are not sure on how to proceed with the Zoho Mail plugin, feel free
 * domain issue fixed
 = 1.5.9 =
 * Fixes on security vulnerbilities.
+= 1.6.0 =
+* Bug Fixes on fetal error.
 
 == Upgrade Notice ==
 none

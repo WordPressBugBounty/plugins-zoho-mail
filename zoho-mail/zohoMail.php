@@ -2,7 +2,7 @@
 //require_once('wp-load.php');
 /*
 Plugin Name: Zoho Mail
-Version: 1.6.0
+Version: 1.6.1
 Plugin URI: http://mail.zoho.com
 Author: Zoho Mail
 Author URI: https://www.zoho.com/mail/
@@ -466,7 +466,6 @@ if(current_user_can("administrator") || is_super_admin()) {
                                 echo '<option value="' . esc_attr($fromAddress) . '" ' . $isSelected . '>' . esc_html($fromAddress) . '</option>';
 
                               }
-                              $mailDetailCount = count($account->sendMailDetails);
                               $jsonDataString = json_encode($jsonbodyAccounts->data);
                               
                               ?>
@@ -543,9 +542,9 @@ if(current_user_can("administrator") || is_super_admin()) {
 	}
 	
 	function zmail_validate_from_name($input) {
-	    // Allow letters, numbers, spaces, and basic special chars (.-_)
+	    // Allow  Unicode letters, numbers, spaces, and common special characters
 	    $input = trim($input);
-	    if (preg_match('/^[a-zA-Z0-9 ._-]{1,50}$/', $input)) {
+	    if (preg_match('/^[\p{L}\p{N} ._-]{1,50}$/u', $input)) {
 		return $input;
 	    }
 	    return false;

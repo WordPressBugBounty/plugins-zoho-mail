@@ -2,7 +2,7 @@
 //require_once('wp-load.php');
 /*
 Plugin Name: Zoho Mail
-Version: 1.6.2
+Version: 1.6.3
 Plugin URI: http://mail.zoho.com
 Author: Zoho Mail
 Author URI: https://www.zoho.com/mail/
@@ -779,6 +779,13 @@ function zmail_send_mail_callback()
   }
 }
 
+function zm_extract_email_address($email) {
+    $email = trim($email);
+    if (preg_match('/<([^>]+)>/', $email, $matches)) {
+        return $matches[1];
+    }
+    return $email;
+}
 
 if (!function_exists('wp_mail')) {
   function wp_mail($to, $subject, $message, $headers = '', $attachments = array())
@@ -898,16 +905,17 @@ if (!function_exists('wp_mail')) {
     }
 
     if (sizeof($bcc) > 0) {
-      $bcc = array_filter(array_map('sanitize_email', $bcc));
-      if (!empty($bcc)) {
-        $data['bccAddress'] = implode(',', $bcc);
-      }
+        $bcc = array_filter(array_map(fn($e) => sanitize_email(zm_extract_email_address($e)), $bcc));
+        if (!empty($bcc)) {
+            $data['bccAddress'] = implode(',', $bcc);
+        }
     }
+    
     if (sizeof($cc) > 0) {
-      $cc = array_filter(array_map('sanitize_email', $cc));
-      if (!empty($cc)) {
-        $data['ccAddress'] = implode(',', $cc);
-      }
+        $cc = array_filter(array_map(fn($e) => sanitize_email(zm_extract_email_address($e)), $cc));
+    	if (!empty($cc)) {
+            $data['ccAddress'] = implode(',', $cc);
+    	}
     }
 
     if (!empty($reply_to)) {
@@ -922,6 +930,7 @@ if (!function_exists('wp_mail')) {
         $data['replyTo'] = sanitize_email($shortString);
       }
     }
+    
     if (!base64_decode(get_option('zmail_refresh_token'), true)) {
       update_option('zmail_refresh_token', base64_encode(get_option('zmail_refresh_token')), false);
     }
@@ -934,7 +943,7 @@ if (!function_exists('wp_mail')) {
 
     $data['subject'] = str_replace(["\r", "\n", "%0a", "%0d"], '', $subject);
     $data['content'] = $message;
-    $to = array_filter(array_map('sanitize_email', $to));
+    $to = array_filter(array_map(fn($e) => sanitize_email(zm_extract_email_address($e)), $to));
 
     if (empty($to)) {
       do_action('wp_mail_failed', new WP_Error('wp_mail_failed', 'No valid recipient email addresses.', array()));
